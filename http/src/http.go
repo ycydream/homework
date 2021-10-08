@@ -8,7 +8,12 @@ import (
 	"strings"
 )
 
-func MyHandler(w http.ResponseWriter, r *http.Request) {
+func HealthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+	fmt.Fprintf(w, "200")
+}
+
+func CommonHandler(w http.ResponseWriter, r *http.Request) {
 	header := r.Header
 	for k, v := range header {
 		//fmt.Println(k, v)
@@ -32,8 +37,9 @@ func MyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", MyHandler)
-	http.ListenAndServe(":8080", nil)
+	http.HandleFunc("/healthz", HealthzHandler)
+	http.HandleFunc("/", CommonHandler)
+	http.ListenAndServe(":80", nil)
 }
 
 func ClientIP(r *http.Request) string {
