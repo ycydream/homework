@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -20,6 +21,12 @@ func MyHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.Header().Set("VERSION", version)
 	}
+	ip := ClientPublicIP(r)
+	if ip == "" {
+		ip = ClientIP(r)
+	}
+	w.WriteHeader(200)
+	fmt.Printf("IP地址:%s；HTTP 返回码：%s\n", ip, "200")
 	//fmt.Println("Header全部数据:", header)
 	fmt.Fprintf(w, "Hello World")
 }
@@ -27,4 +34,44 @@ func MyHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", MyHandler)
 	http.ListenAndServe(":8080", nil)
+}
+
+func ClientIP(r *http.Request) string {
+	xForwardedFor := r.Header.Get("X-Forwarded-For")
+	ip := strings.TrimSpace(strings.Split(xForwardedFor, ",")[0])
+	if ip != "" {
+		return ip
+	}
+
+	ip = strings.TrimSpace(r.Header.Get("X-Real-Ip"))
+	if ip != "" {
+		return ip
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
+}
+
+func ClientPublicIP(r *http.Request) string {
+	var ip string
+	for _, ip = range strings.Split(r.Header.Get("X-Forwarded-For"), ",") {
+		ip = strings.TrimSpace(ip)
+		if ip != "" {
+			return ip
+		}
+	}
+
+	ip = strings.TrimSpace(r.Header.Get("X-Real-Ip"))
+	if ip != "" {
+		return ip
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
 }
